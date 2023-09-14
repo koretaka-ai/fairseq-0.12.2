@@ -263,7 +263,12 @@ class TranslationConfig(FairseqDataclass):
     eval_bleu_print_samples: bool = field(
         default=False, metadata={"help": "print sample generations during validation"}
     )
-
+    sacrebleu_tokenizer: str = field(
+        default='none', metadata={"help": "compute bleu by sacrebleu with sacrebleu_tokenizer"}
+    )
+    scoring: str = field(
+        default='bleu', metadata={"help": "use sacrebleu"}
+    )
 
 @register_task("translation", dataclass=TranslationConfig)
 class TranslationTask(FairseqTask):
@@ -492,7 +497,10 @@ class TranslationTask(FairseqTask):
         if self.cfg.eval_bleu_print_samples:
             logger.info("example hypothesis: " + hyps[0])
             logger.info("example reference: " + refs[0])
-        if self.cfg.eval_tokenized_bleu:
+
+        if self.cfg.scoring == "sacrebleu":
+            return sacrebleu.corpus_bleu(hyps, [refs], tokenize=self.cfg.sacrebleu_tokenizer, smooth_method='exp')
+        elif self.cfg.eval_tokenized_bleu:
             return sacrebleu.corpus_bleu(hyps, [refs], tokenize="none")
         else:
             return sacrebleu.corpus_bleu(hyps, [refs])
